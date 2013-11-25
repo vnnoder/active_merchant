@@ -6,6 +6,10 @@ module ActiveMerchant #:nodoc:
       PURCHASE_HOLD = 'H'
       PURCHASE_NORMAL = 'N'
 
+      STATUS_ACTIVE = 'A'
+      STATUS_INACTIVE = 'I'
+      STATUS_DISABLE = 'D'
+
       self.test_url = 'https://test.paydollar.com/b2cDemo/eng/directPay/payComp.jsp'
       self.live_url = 'https://www.paydollar.com/b2c2/eng/directPay/payComp.jsp'
       self.test_merchant_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/orderApi.jsp'
@@ -75,6 +79,32 @@ module ActiveMerchant #:nodoc:
         commit('void', post)
       end
 
+      def store(creditcard, options = {})
+        requires!(@options, :login, :password)
+        post = {}
+
+        add_pair(post, :merchantApiId, @options[:login])
+        add_pair(post, :password, @options[:password])
+        add_pair(post, :actionType , "Add")
+        add_pair(post, :status , STATUS_ACTIVE)
+        add_pair(post, :memberId, options[:customer])
+        add_pair(post, :firstName, options[:name].split(" ")[0]) if options[:name]
+        add_pair(post, :lastName, options[:name].split(" ")[1..-1].join(" ")) if options[:name]
+        #memberGroupId is required, use 1 as default if options[:group] is not provided
+        add_pair(post, :memberGroupId, options[:group] || 1)
+
+        #Update the information if the member exists
+        add_pair(post, :replace, options[:replace] || "T")
+        add_pair(post, :account, creditcard.number)
+        add_pair(post, :expYear, creditcard.year)
+        add_pair(post, :expMonth, creditcard.month)
+        add_pair(post, :holderName, creditcard.name)
+        add_pair(post, :acctStatus, STATUS_ACTIVE)
+
+        commit('store', post)
+
+      end
+
       private
 
       def add_customer_data(post, options)
@@ -113,6 +143,33 @@ module ActiveMerchant #:nodoc:
 
       #parse data from response
       def parse(body)
+        if is_xml?(body)
+          parse_xml body
+        else
+          parse_query body
+        end
+      end
+
+      def parse_xml(body)
+        xml = REXML::Document.new(body)
+        response_status = response = {}
+        xml.elements.each('membershipresponse/responsestatus/*') do |element|
+          response_status[element.name.underscore.to_sym] = element.text
+        end
+        xml.elements.each('membershipresponse/response/*') do |element|
+          response[element.name.underscore.to_sym] = element.text
+        end
+
+        success = response_status[:responsecode] == "0"
+        message = response_status[:responsemessage]
+        params = options = {}
+        options[:test] = test?
+        params[:token] = response[:statictoken]
+
+        PayDollarResponse.new(success, message, params , options)
+      end
+
+      def parse_query(body)
         return_params = parse_response body
         if return_params["successcode"] #purchase & authorize
           success = return_params.delete("successcode") == "0"
@@ -122,7 +179,7 @@ module ActiveMerchant #:nodoc:
         message = return_params.delete("errMsg").strip
         options[:test] = test?
         options[:authorization] = return_params.delete("PayRef")
-        Response.new(success, message, return_params, options)
+        PayDollarResponse.new(success, message, return_params, options)
       end
 
       #post action to server
@@ -137,9 +194,6 @@ module ActiveMerchant #:nodoc:
         response = parse(raw_response)
       end
 
-      #get message from response
-      def message_from(response)
-      end
 
       def post_data(action, parameters = {})
         parameters.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join("&")
@@ -152,6 +206,8 @@ module ActiveMerchant #:nodoc:
           test? ? self.test_url : self.live_url
         when 'capture', 'void'
           test? ? self.test_merchant_url : self.live_merchant_url
+        when 'store'
+          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MembershipApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp"
         end
       end
 
@@ -165,6 +221,19 @@ module ActiveMerchant #:nodoc:
           hash[key] = value
           hash
         end
+      end
+
+      def is_xml?(body)
+        striped_body = body.strip
+        striped_body.start_with?("<") && striped_body.end_with?(">")
+      end
+    end
+
+    class PayDollarResponse < Response
+      # add a method to response so we can easily get the token
+      # for Validate transactions
+      def token
+        @params["token"]
       end
     end
   end

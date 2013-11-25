@@ -382,6 +382,11 @@ payway:
   password:
   pem:
 
+pay_dollar:
+  login: apimedp
+  password: pats7269
+  merchant: 12103014
+
 pay_secure:
   login: LOGIN
   password: PASSWORD

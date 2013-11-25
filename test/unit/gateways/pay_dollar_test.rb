@@ -83,6 +83,29 @@ class PayDollarTest < Test::Unit::TestCase
     assert_equal 'Authentication Failed', response.message
   end
 
+  def test_successful_card_store
+    @gateway.expects(:ssl_post).returns(successful_store_response)
+
+    assert response = @gateway.store(@credit_card)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+  end
+
+  def successful_store_response
+    <<-STORE_RESPONSE
+<?xml version="1.0" encoding="ISO-8859-1"?>
+  <membershipresponse>
+    <action>Add</action>
+    <responsestatus>
+      <responsecode>0</responsecode>
+      <responsemessage>OK</responsemessage>
+    </responsestatus>
+  <response/>
+</membershipresponse>
+    STORE_RESPONSE
+  end
+
   def successful_purchase_response
     "successcode=0&Ref=REF1&PayRef=1296297&Amt=10.0&Cur=702&prc=0&src=0&Ord=12345678&Holder=Test Holder&AuthId=296297&TxTime=2013-11-21 12:01:36.0&errMsg=Transaction completed"
   end

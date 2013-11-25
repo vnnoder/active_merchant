@@ -108,11 +108,23 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert_equal 'Authentication Failed', response.message
   end
 
+  def test_successful_card_store
+    gateway = PayDollarGateway.new(fixtures(:pay_dollar))
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
+
+    assert response = @gateway.store(@credit_card, @options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+    assert response.token
+  end
+
 private
 
   def credit_card
     Struct.new("CreditCard", :brand, :month, :year, :number, :name, :verification_value)
-    return Struct::CreditCard.new("VISA", 7, 2015, "4918914107195005", "Test Holder", "123")
+    return Struct::CreditCard.new("VISA", "07", "2015", "4918914107195005", "Test Holder", "123")
   end
 
 end
