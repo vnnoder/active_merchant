@@ -10,7 +10,7 @@ class PayDollarTest < Test::Unit::TestCase
         }
       )
 
-    @credit_card = credit_card
+    @credit_card = credit_card("VISA", "07", "2015", "4918914107195005", "Test Holder", "123")
     @amount = 10
 
     @options = {
@@ -83,16 +83,54 @@ class PayDollarTest < Test::Unit::TestCase
     assert_equal 'Authentication Failed', response.message
   end
 
-  def test_successful_card_store
-    @gateway.expects(:ssl_post).returns(successful_store_response)
+  def test_successful_add_membership
+    @gateway.expects(:ssl_post).returns(successful_add_membership_response)
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
 
-    assert response = @gateway.store(@credit_card)
+    assert response = @gateway.add_membership(@options)
     assert_success response
     assert_equal 'OK', response.message
     assert response.test?
   end
 
-  def successful_store_response
+  def test_retrieve_card
+    @gateway.expects(:ssl_post).returns(successful_query_memberpay_response)
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
+
+    assert response = @gateway.retrieve_card(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+    acc = response.params["account"]
+    assert acc[:account_id] && acc[:accounttype] && acc[:account] && acc[:expyear] && acc[:expmonth] && acc[:holdername] && acc[:status]
+  end
+
+  def successful_query_memberpay_response
+    <<-RESPONSE
+    <memberpayresponse>
+      <action>Query</action>
+      <responsestatus>
+        <responsecode>0</responsecode>
+        <responsemessage>OK</responsemessage>
+      </responsestatus>
+      <response>
+        <account>
+          <accountId>1</accountId>
+          <accounttype>VISA</accounttype>
+          <account>491891******5005</account>
+          <expyear>2015</expyear>
+          <expmonth>7</expmonth>
+          <holdername>Test Holder</holdername>
+          <status>A</status>
+        </account>
+      </response>
+    </memberpayresponse>
+    RESPONSE
+  end
+
+  def successful_add_membership_response
     <<-STORE_RESPONSE
 <?xml version="1.0" encoding="ISO-8859-1"?>
   <membershipresponse>
@@ -127,9 +165,9 @@ class PayDollarTest < Test::Unit::TestCase
   end
 private
 
-  def credit_card
+  def credit_card(brand, month, year, number, name, verification_value)
     Struct.new("CreditCard", :brand, :month, :year, :number, :name, :verification_value)
-    return Struct::CreditCard.new("VISA", 7, 2015, "4918914107195005", "Test Holder", "123")
+    return Struct::CreditCard.new(brand, month, year, number, name, verification_value)
   end
 
 end

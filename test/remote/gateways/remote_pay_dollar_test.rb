@@ -4,7 +4,7 @@ class RemotePayDollarTest < Test::Unit::TestCase
   def setup
     @gateway = PayDollarGateway.new(fixtures(:pay_dollar))
 
-    @credit_card = credit_card
+    @credit_card = credit_card("VISA", "07", "2015", "4918914107195005", "Test Holder", "123")
     @amount = 10
 
     @options = {
@@ -108,10 +108,28 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert_equal 'Authentication Failed', response.message
   end
 
-  def test_successful_card_store
+  def test_successful_add_membership
     gateway = PayDollarGateway.new(fixtures(:pay_dollar))
     @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
     @options[:name] = "John Doe"
+
+    assert response = @gateway.add_membership(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+
+  end
+
+  def test_add_membership_and_store_card
+    gateway = PayDollarGateway.new(fixtures(:pay_dollar))
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
+
+    assert response = @gateway.add_membership(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+
 
     assert response = @gateway.store(@credit_card, @options)
     assert_success response
@@ -120,11 +138,38 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert response.token
   end
 
+  def test_add_membership_store_card_and_purchase
+    gateway = PayDollarGateway.new(fixtures(:pay_dollar))
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
+
+    assert response = @gateway.add_membership(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+
+
+    assert response = @gateway.store(@credit_card, @options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+    assert response.token
+
+    @options[:token] = response.token
+
+
+    assert response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal response.message, "Transaction completed"
+    assert response.test?
+  end
+
+
 private
 
-  def credit_card
+  def credit_card(brand, month, year, number, name, verification_value)
     Struct.new("CreditCard", :brand, :month, :year, :number, :name, :verification_value)
-    return Struct::CreditCard.new("VISA", "07", "2015", "4918914107195005", "Test Holder", "123")
+    return Struct::CreditCard.new(brand, month, year, number, name, verification_value)
   end
 
 end

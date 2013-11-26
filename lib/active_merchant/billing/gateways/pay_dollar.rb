@@ -35,9 +35,15 @@ module ActiveMerchant #:nodoc:
       def authorize(money, creditcard, options = {})
         post = {}
         add_invoice(post, options)
-        add_creditcard(post, creditcard)
+        if options[:customer]
+          add_customer_data(post, options)
+        else
+          add_creditcard(post, creditcard)
+        end
+
         add_address(post, creditcard, options)
-        add_customer_data(post, options)
+
+        add_pair(post, :lang, options[:lang])
         add_pair(post, :payType, PURCHASE_HOLD)
         add_pair(post, :amount, money)
 
@@ -47,9 +53,14 @@ module ActiveMerchant #:nodoc:
       def purchase(money, creditcard, options = {})
         post = {}
         add_invoice(post, options)
-        add_creditcard(post, creditcard)
+        if options[:customer]
+          add_customer_data(post, options)
+        else
+          add_creditcard(post, creditcard)
+        end
         add_address(post, creditcard, options)
-        add_customer_data(post, options)
+
+        add_pair(post, :lang, options[:lang])
         add_pair(post, :payType, PURCHASE_NORMAL)
         add_pair(post, :amount, money)
 
@@ -88,13 +99,7 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :actionType , "Add")
         add_pair(post, :status , STATUS_ACTIVE)
         add_pair(post, :memberId, options[:customer])
-        add_pair(post, :firstName, options[:name].split(" ")[0]) if options[:name]
-        add_pair(post, :lastName, options[:name].split(" ")[1..-1].join(" ")) if options[:name]
-        #memberGroupId is required, use 1 as default if options[:group] is not provided
-        add_pair(post, :memberGroupId, options[:group] || 1)
 
-        #Update the information if the member exists
-        add_pair(post, :replace, options[:replace] || "T")
         add_pair(post, :account, creditcard.number)
         add_pair(post, :expYear, creditcard.year)
         add_pair(post, :expMonth, creditcard.month)
@@ -102,17 +107,48 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :acctStatus, STATUS_ACTIVE)
 
         commit('store', post)
-
       end
 
-      private
+      def retrieve_card(token, options = {})
+        requires!(@options, :login, :password)
+        post = {}
+
+        add_pair(post, :merchantApiId, @options[:login])
+        add_pair(post, :password, @options[:password])
+        add_pair(post, :actionType, "Query")
+        add_pair(post, :memberId, options[:customer])
+
+        commit('store', post)
+      end
+
+      def add_membership(options= {})
+        requires!(@options, :login, :password)
+        post = {}
+
+        add_pair(post, :merchantApiId, @options[:login])
+        add_pair(post, :password, @options[:password])
+        add_pair(post, :actionType , "Add")
+        add_pair(post, :status , STATUS_ACTIVE)
+        add_pair(post, :memberId, options[:customer])
+        add_pair(post, :firstName, options[:name].split(" ")[0]) if options[:name]
+        add_pair(post, :lastName, options[:name].split(" ")[1..-1].join(" ")) if options[:name]
+        #memberGroupId is required, use 1 as default if options[:group] is not provided
+        add_pair(post, :memberGroupId, options[:group] || 1)
+        add_pair(post, :status, options[:status] || STATUS_ACTIVE)
+
+        commit('membership', post)
+      end
+
+    private
 
       def add_customer_data(post, options)
-        add_pair(post, :lang, options[:lang])
+        if options[:customer]
+          add_pair(post, :memberPay_memberId, options[:customer])
+          add_pair(post, :memberPay_token, options[:token])
+        end
       end
 
       def add_address(post, creditcard, options)
-        post = {}
         if options[:address]
           add_pair(post, :billingFirstName, options[:address][:name].split(" ")[0]) if options[:address][:name]
           add_pair(post, :billingLastName, options[:address][:name].split(" ")[1..-1].join(" ")) if options[:address][:name]
@@ -152,21 +188,24 @@ module ActiveMerchant #:nodoc:
 
       def parse_xml(body)
         xml = REXML::Document.new(body)
-        response_status = response = {}
-        xml.elements.each('membershipresponse/responsestatus/*') do |element|
+        response_status = params = {}
+        xml.elements.each('*/responsestatus/*') do |element|
           response_status[element.name.underscore.to_sym] = element.text
         end
-        xml.elements.each('membershipresponse/response/*') do |element|
-          response[element.name.underscore.to_sym] = element.text
+        xml.elements.each('*/response/*') do |element|
+          params[element.name.underscore.to_sym] = element.text
+        end
+        params[:account] = {}
+        xml.elements.each('*/response/account/*') do |element|
+          params[:account][element.name.underscore.to_sym] = element.text
         end
 
         success = response_status[:responsecode] == "0"
         message = response_status[:responsemessage]
-        params = options = {}
+        options = {}
         options[:test] = test?
-        params[:token] = response[:statictoken]
 
-        PayDollarResponse.new(success, message, params , options)
+        PayDollarResponse.new(success, message, params, options)
       end
 
       def parse_query(body)
@@ -207,8 +246,11 @@ module ActiveMerchant #:nodoc:
         when 'capture', 'void'
           test? ? self.test_merchant_url : self.live_merchant_url
         when 'store'
-          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MembershipApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp"
+          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp"
+        when 'membership'
+          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MembershipApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MembershipApi.jsp"
         end
+
       end
 
       def add_pair(post, key, value)
@@ -233,7 +275,7 @@ module ActiveMerchant #:nodoc:
       # add a method to response so we can easily get the token
       # for Validate transactions
       def token
-        @params["token"]
+        @params["statictoken"]
       end
     end
   end
