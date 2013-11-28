@@ -10,6 +10,39 @@ module ActiveMerchant #:nodoc:
       STATUS_INACTIVE = 'I'
       STATUS_DISABLE = 'D'
 
+      LANG_CODE = {
+        "Traditional Chinese" => "C",
+        "English" => "E",
+        "Simplified Chinese" => "X",
+        "Korean" => "K",
+        "Japanese" => "J",
+        "Thai" => "T"
+      }
+
+      CURRENCY_CODE = {
+        "HKD" => "344",
+        "USD" => "840",
+        "SGD" => "702",
+        "CNY" => "156",
+        "JPY" =>  "392",
+        "TWD" => "901",
+        "AUD" => "036",
+        "EUR" => "978",
+        "GBP" => "826",
+        "CAD" => "124",
+        "MOP" => "446",
+        "PHP" => "608",
+        "THB" => "764",
+        "MYR" => "458",
+        "IDR" => "360",
+        "KRW" => "410",
+        "SAR" => "682",
+        "NZD" => "554",
+        "AED" => "784",
+        "BND" => "096"
+      }
+
+
       self.test_url = 'https://test.paydollar.com/b2cDemo/eng/directPay/payComp.jsp'
       self.live_url = 'https://www.paydollar.com/b2c2/eng/directPay/payComp.jsp'
       self.test_merchant_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/orderApi.jsp'
@@ -105,6 +138,18 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :expMonth, creditcard.month)
         add_pair(post, :holderName, creditcard.name)
         add_pair(post, :acctStatus, STATUS_ACTIVE)
+
+        commit('store', post)
+      end
+
+      def delete_card(token, options = {})
+        requires!(@options, :login, :password)
+        post = {}
+
+        add_pair(post, :merchantApiId, @options[:login])
+        add_pair(post, :password, @options[:password])
+        add_pair(post, :actionType, "Delete")
+        add_pair(post, :memberId, options[:customer])
 
         commit('store', post)
       end

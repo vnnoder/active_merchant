@@ -161,6 +161,29 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert response.test?
   end
 
+  def test_add_membership_store_and_delete_card
+    gateway = PayDollarGateway.new(fixtures(:pay_dollar))
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+    @options[:name] = "John Doe"
+
+    assert response = @gateway.add_membership(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+
+
+    assert response = @gateway.store(@credit_card, @options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+    assert response.token
+
+    assert response = @gateway.delete_card(response.token, @options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+  end
+
 
   def test_add_membership_store_card_and_purchase
     gateway = PayDollarGateway.new(fixtures(:pay_dollar))

@@ -107,26 +107,49 @@ class PayDollarTest < Test::Unit::TestCase
     assert acc[:account_id] && acc[:accounttype] && acc[:account] && acc[:expyear] && acc[:expmonth] && acc[:holdername] && acc[:status]
   end
 
+  def test_delete_card
+    @gateway.expects(:ssl_post).returns(successful_delete_card_response)
+    @options[:customer] = "customer#{(Time.now.to_f * 1000).round}"
+
+    assert response = @gateway.delete_card(@options)
+    assert_success response
+    assert_equal 'OK', response.message
+    assert response.test?
+  end
+
+  def successful_delete_card_response
+    <<-RESPONSE
+<membershipresponse>
+  <action>Delete</action>
+  <responsestatus>
+      <responsecode>0</responsecode>
+      <responsemessage>OK</responsemessage>
+  </responsestatus>
+  <response/>
+</membershipresponse>
+    RESPONSE
+  end
+
   def successful_query_memberpay_response
     <<-RESPONSE
-    <memberpayresponse>
-      <action>Query</action>
-      <responsestatus>
-        <responsecode>0</responsecode>
-        <responsemessage>OK</responsemessage>
-      </responsestatus>
-      <response>
-        <account>
-          <accountId>1</accountId>
-          <accounttype>VISA</accounttype>
-          <account>491891******5005</account>
-          <expyear>2015</expyear>
-          <expmonth>7</expmonth>
-          <holdername>Test Holder</holdername>
-          <status>A</status>
-        </account>
-      </response>
-    </memberpayresponse>
+<memberpayresponse>
+  <action>Query</action>
+  <responsestatus>
+    <responsecode>0</responsecode>
+    <responsemessage>OK</responsemessage>
+  </responsestatus>
+  <response>
+    <account>
+      <accountId>1</accountId>
+      <accounttype>VISA</accounttype>
+      <account>491891******5005</account>
+      <expyear>2015</expyear>
+      <expmonth>7</expmonth>
+      <holdername>Test Holder</holdername>
+      <status>A</status>
+    </account>
+  </response>
+</memberpayresponse>
     RESPONSE
   end
 
