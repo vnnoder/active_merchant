@@ -53,7 +53,6 @@ class PayDollarTest < Test::Unit::TestCase
     @gateway.expects(:ssl_post).returns(successful_authorization_response)
 
     assert response = @gateway.authorize(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
 

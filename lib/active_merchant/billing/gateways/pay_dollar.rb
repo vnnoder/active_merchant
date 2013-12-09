@@ -1,3 +1,6 @@
+require 'openssl'
+require 'base64'
+
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class PayDollarGateway < Gateway
@@ -179,9 +182,26 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :lastName, options[:name].split(" ")[1..-1].join(" ")) if options[:name]
         #memberGroupId is required, use 1 as default if options[:group] is not provided
         add_pair(post, :memberGroupId, options[:group] || 1)
-        add_pair(post, :status, options[:status] || STATUS_ACTIVE)
 
         commit('membership', post)
+      end
+
+      def generate_one_time_token(static_token, amount, options = {})
+        requires!(@options, :login, :password, :decrypt_key, :decrypt_salt)
+        decripted_token = base64_decrypt(static_token, @options[:decrypt_key], @options[:decrypt_salt])
+        post = {}
+
+        add_pair(post, :merchantApiId, @options[:login])
+        add_pair(post, :password, @options[:password])
+        add_pair(post, :actionType , "GenerateToken")
+        add_pair(post, :memberId, options[:customer])
+        add_pair(post, :accountId, 0)
+        add_pair(post, :amount, amount)
+        add_pair(post, :staticToken, decripted_token)
+
+        add_invoice(post, options)
+
+        commit('store', post)
       end
 
     private
@@ -313,6 +333,15 @@ module ActiveMerchant #:nodoc:
       def is_xml?(body)
         striped_body = body.strip
         striped_body.start_with?("<") && striped_body.end_with?(">")
+      end
+
+      def base64_decrypt(static_token, password, salt)
+        aes = OpenSSL::Cipher::AES256.new(:CBC)
+        aes.decrypt
+        aes.padding = 1
+        aes.key = password
+        aes.iv = salt
+        aes.update(Base64::decode64(static_token))+aes.final
       end
     end
 

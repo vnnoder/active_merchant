@@ -16,7 +16,6 @@ class RemotePayDollarTest < Test::Unit::TestCase
 
   def test_successful_purchase
     assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
     assert response.test?
@@ -36,7 +35,6 @@ class RemotePayDollarTest < Test::Unit::TestCase
     }
     @options.update({:address => address})
     assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
     assert response.test?
@@ -44,7 +42,6 @@ class RemotePayDollarTest < Test::Unit::TestCase
 
   def test_successful_authorize
     assert response = @gateway.authorize(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
 
@@ -55,14 +52,12 @@ class RemotePayDollarTest < Test::Unit::TestCase
 
   def test_authorize_and_capture
     assert response = @gateway.authorize(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
     assert response.authorization
     assert response.test?
 
     assert response = @gateway.capture(@amount, response.authorization, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Capture Successfully."
     assert response.test?
@@ -70,13 +65,11 @@ class RemotePayDollarTest < Test::Unit::TestCase
 
   def test_purchase_and_void
     assert response = @gateway.purchase(@amount, @credit_card, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Transaction completed"
     assert response.test?
 
     assert response = @gateway.void(response.authorization, @options)
-    assert_instance_of Response, response
     assert_success response
     assert_equal response.message, "Void Successfully."
   end
@@ -201,8 +194,15 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert_equal 'OK', response.message
     assert response.test?
     assert response.token
+    puts "========================"
+    puts response.params.inspect
+    assert response.params["accountid"]
+    @options[:account_id] = response.params["accountid"]
 
-    @options[:token] = response.token
+    response = @gateway.generate_one_time_token(response.token, @amount, @options)
+    assert_success response
+    assert response.params["token"]
+    @options[:token] = response.params["token"]
 
 
     assert response = @gateway.purchase(@amount, @credit_card, @options)
