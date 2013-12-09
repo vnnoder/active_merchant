@@ -68,40 +68,14 @@ module ActiveMerchant #:nodoc:
         super
       end
 
-      def authorize(money, creditcard, options = {})
-        post = {}
-        add_invoice(post, options)
-        if options[:customer]
-          add_customer_data(post, options)
-        else
-          add_creditcard(post, creditcard)
-        end
-
-        add_address(post, creditcard, options)
-
-        add_pair(post, :lang, options[:lang])
-        add_pair(post, :payType, PURCHASE_HOLD)
-        add_pair(post, :amount, money)
+      def authorize(money, payment_source, options = {})
+        post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_HOLD)
 
         commit('authonly', post)
       end
 
       def purchase(money, payment_source, options = {})
-        post = {}
-        add_invoice(post, options)
-        if payment_source.is_a?(String)
-          #purchase with memberpay
-          response = generate_one_time_token(payment_source, money, options)
-          options[:token] = response.params["token"]
-          add_customer_data(post, options)
-        else
-          add_creditcard(post, payment_source)
-        end
-        add_address(post, payment_source, options)
-
-        add_pair(post, :lang, options[:lang])
-        add_pair(post, :payType, PURCHASE_NORMAL)
-        add_pair(post, :amount, money)
+        post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_NORMAL)
 
         commit('sale', post)
       end
@@ -208,6 +182,24 @@ module ActiveMerchant #:nodoc:
       end
 
     private
+      def authorize_or_purchase_post(money, payment_source, options = {}, type)
+        post = {}
+        add_invoice(post, options)
+        if payment_source.is_a?(String)
+          #purchase with memberpay
+          response = generate_one_time_token(payment_source, money, options)
+          options[:token] = response.params["token"]
+          add_customer_data(post, options)
+        else
+          add_creditcard(post, payment_source)
+        end
+        add_address(post, payment_source, options)
+
+        add_pair(post, :lang, options[:lang])
+        add_pair(post, :payType, type)
+        add_pair(post, :amount, money)
+        return post
+      end
 
       def add_customer_data(post, options)
         if options[:customer]
