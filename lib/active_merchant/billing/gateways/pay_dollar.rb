@@ -86,15 +86,18 @@ module ActiveMerchant #:nodoc:
         commit('authonly', post)
       end
 
-      def purchase(money, creditcard, options = {})
+      def purchase(money, payment_source, options = {})
         post = {}
         add_invoice(post, options)
-        if options[:customer]
+        if payment_source.is_a?(String)
+          #purchase with memberpay
+          response = generate_one_time_token(payment_source, money, options)
+          options[:token] = response.params["token"]
           add_customer_data(post, options)
         else
-          add_creditcard(post, creditcard)
+          add_creditcard(post, payment_source)
         end
-        add_address(post, creditcard, options)
+        add_address(post, payment_source, options)
 
         add_pair(post, :lang, options[:lang])
         add_pair(post, :payType, PURCHASE_NORMAL)
@@ -210,6 +213,7 @@ module ActiveMerchant #:nodoc:
         if options[:customer]
           add_pair(post, :memberPay_memberId, options[:customer])
           add_pair(post, :memberPay_token, options[:token])
+          add_pair(post, :memberPay_service, "T")
         end
       end
 

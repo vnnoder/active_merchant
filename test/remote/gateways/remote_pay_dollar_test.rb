@@ -195,17 +195,8 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert response.test?
     assert response.token
     puts "========================"
-    puts response.params.inspect
-    assert response.params["accountid"]
-    @options[:account_id] = response.params["accountid"]
 
-    response = @gateway.generate_one_time_token(response.token, @amount, @options)
-    assert_success response
-    assert response.params["token"]
-    @options[:token] = response.params["token"]
-
-
-    assert response = @gateway.purchase(@amount, @credit_card, @options)
+    assert response = @gateway.purchase(@amount,response.token, @options)
     assert_success response
     assert_equal response.message, "Transaction completed"
     assert response.test?
