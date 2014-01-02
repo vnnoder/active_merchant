@@ -69,13 +69,17 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorize(money, payment_source, options = {})
+        options.merge! @options
         post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_HOLD)
+        add_pair(post, :secureHash, generate_secure_hash(money, PURCHASE_HOLD, options))
 
         commit('authonly', post)
       end
 
       def purchase(money, payment_source, options = {})
+        options.merge! @options
         post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_NORMAL)
+        add_pair(post, :secureHash, generate_secure_hash(money, PURCHASE_NORMAL, options))
 
         commit('sale', post)
       end
@@ -299,7 +303,6 @@ module ActiveMerchant #:nodoc:
         parameters.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join("&")
       end
 
-    private
       def post_url(action)
         case action
         when 'authonly', 'sale'
@@ -338,6 +341,12 @@ module ActiveMerchant #:nodoc:
         aes.key = password
         aes.iv = salt
         aes.update(Base64::decode64(static_token))+aes.final
+      end
+
+      def generate_secure_hash(money, payment_type, options)
+        to_be_hashed = "#{options[:merchant]}|#{options[:order_id]}|#{options[:currency]}|#{money}|#{payment_type}|#{options[:secure_hash_secret]}"
+        puts "to_be_hashed: #{to_be_hashed}"
+        Digest::SHA1.hexdigest to_be_hashed
       end
     end
 

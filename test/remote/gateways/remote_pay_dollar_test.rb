@@ -8,8 +8,8 @@ class RemotePayDollarTest < Test::Unit::TestCase
     @amount = 10
 
     @options = {
-      :order_id => "test#{(Time.now.to_f * 1000).round}",
-      :currency => "702",
+      :order_id => "#{(Time.now.to_f * 1000).round}",
+      :currency => "840",
       :lang => "E"
     }
   end

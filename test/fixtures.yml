@@ -388,6 +388,7 @@ pay_dollar:
   merchant: 12103014
   decrypt_key: LiVe6R2FOdFZLsEIe1Ex6ili87bvqaZ8q.O3oM8SXrc-
   decrypt_salt: qaZ8q.O3oM8SXrc-
+  secure_hash_secret: 6NAb4dpZCV8A3b4fil8f0ikCJbjuKF9J
 
 pay_secure:
   login: LOGIN
