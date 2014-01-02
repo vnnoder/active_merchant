@@ -85,10 +85,11 @@ module ActiveMerchant #:nodoc:
       end
 
       def capture(money, authorization, options = {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
-        add_pair(post, :loginId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "Capture")
         add_pair(post, :payRef, authorization)
         add_pair(post, :amount, money)
@@ -97,10 +98,11 @@ module ActiveMerchant #:nodoc:
       end
 
       def void(authorization, options = {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
-        add_pair(post, :loginId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "Void")
         add_pair(post, :payRef, authorization)
 
@@ -108,11 +110,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def store(creditcard, options = {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "Add")
         add_pair(post, :status , STATUS_ACTIVE)
         add_pair(post, :memberId, options[:customer])
@@ -127,11 +130,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def delete_card(token, options = {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType, "Delete")
         add_pair(post, :memberId, options[:customer])
 
@@ -139,11 +143,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def retrieve_card(token, options = {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType, "Query")
         add_pair(post, :memberId, options[:customer])
 
@@ -151,11 +156,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_membership(options= {})
-        requires!(@options, :login, :password)
+        options.merge! @options
+        requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "Add")
         add_pair(post, :status , STATUS_ACTIVE)
         add_pair(post, :memberId, options[:customer])
@@ -168,12 +174,13 @@ module ActiveMerchant #:nodoc:
       end
 
       def generate_one_time_token(static_token, amount, options = {})
-        requires!(@options, :login, :password, :decrypt_key, :decrypt_salt)
-        decripted_token = base64_decrypt(static_token, @options[:decrypt_key], @options[:decrypt_salt])
+        options.merge! @options
+        requires!(options, :login, :password, :decrypt_key, :decrypt_salt)
+        decripted_token = base64_decrypt(static_token, options[:decrypt_key], options[:decrypt_salt])
         post = {}
 
-        add_pair(post, :merchantApiId, @options[:login])
-        add_pair(post, :password, @options[:password])
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "GenerateToken")
         add_pair(post, :memberId, options[:customer])
         add_pair(post, :accountId, 0)
