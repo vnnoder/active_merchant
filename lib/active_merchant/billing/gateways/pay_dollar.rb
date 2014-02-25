@@ -93,6 +93,7 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :actionType , "Capture")
         add_pair(post, :payRef, authorization)
         add_pair(post, :amount, money)
+        add_pair(post, :currCode, options[:currency])
 
         commit('capture', post)
       end
@@ -107,6 +108,18 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :payRef, authorization)
 
         commit('void', post)
+      end
+
+      def reverse_authorization(authorization, options = {})
+        options.merge! @options
+        requires!(options, :login, :password)
+        post = {}
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
+        add_pair(post, :actionType , "Reverse")
+        add_pair(post, :payRef, authorization)
+
+        commit('reverse_auth', post)
       end
 
       def store(creditcard, options = {})
@@ -314,7 +327,7 @@ module ActiveMerchant #:nodoc:
         case action
         when 'authonly', 'sale'
           test? ? self.test_url : self.live_url
-        when 'capture', 'void'
+        when 'capture', 'void', 'reverse_auth'
           test? ? self.test_merchant_url : self.live_merchant_url
         when 'store'
           test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp"

@@ -63,6 +63,19 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert response.test?
   end
 
+  def test_authorize_and_reverse
+    assert response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal response.message, "Transaction completed"
+    assert response.authorization
+    assert response.test?
+
+    assert response = @gateway.reverse_authorization(response.authorization, @options)
+    assert_success response
+    puts response.message
+    assert response.test?
+  end
+
   def test_purchase_and_void
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
