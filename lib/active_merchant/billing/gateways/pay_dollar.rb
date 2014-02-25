@@ -45,9 +45,8 @@ module ActiveMerchant #:nodoc:
         "BND" => "096"
       }
 
-
-      self.test_url = 'https://test.paydollar.com/b2cDemo/eng/directPay/payComp.jsp'
-      self.live_url = 'https://www.paydollar.com/b2c2/eng/directPay/payComp.jsp'
+      self.test_url = 'https://test.paydollar.com/b2cDemo/eng/dPayment/payComp.jsp'
+      self.live_url = 'https://www.paydollar.com/b2c2/eng/dPayment/payComp.jsp'
       self.test_merchant_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/orderApi.jsp'
       self.live_merchant_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/orderApi.jsp'
 
