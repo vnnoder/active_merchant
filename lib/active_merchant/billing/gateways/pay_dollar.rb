@@ -312,12 +312,12 @@ module ActiveMerchant #:nodoc:
 
         data = post_data(action, parameters)
         raw_response = ssl_post(post_url(action), data)
-        log_transaction(data, raw_response) unless action == 'store'
+        log_transaction(data, raw_response, action) unless action == 'store'
 
         parse(raw_response)
       end
 
-      def log_transaction(request, response)
+      def log_transaction(request, response, action)
         #to be overriden
       end
 
