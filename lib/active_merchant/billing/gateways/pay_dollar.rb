@@ -205,7 +205,7 @@ module ActiveMerchant #:nodoc:
         commit('store', post)
       end
 
-    private
+    protected
       def authorize_or_purchase_post(money, payment_source, options = {}, type)
         post = {}
         add_invoice(post, options)
@@ -310,14 +310,16 @@ module ActiveMerchant #:nodoc:
       def commit(action, parameters)
         add_pair(parameters, :merchantId, @options[:merchant])
 
-        puts "parameters=#{parameters}"
         data = post_data(action, parameters)
-        puts "data=#{data}"
         raw_response = ssl_post(post_url(action), data)
-        puts "raw_response=#{raw_response}"
-        response = parse(raw_response)
+        log_transaction(data, raw_response) unless action == 'store'
+
+        parse(raw_response)
       end
 
+      def log_transaction(request, response)
+        #to be overriden
+      end
 
       def post_data(action, parameters = {})
         parameters.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join("&")
