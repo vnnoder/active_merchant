@@ -317,7 +317,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def log_transaction(request, response, action)
-        #to be overriden
+        puts "request: #{request}"
+        puts "response: #{response}"
       end
 
       def post_data(action, parameters = {})
