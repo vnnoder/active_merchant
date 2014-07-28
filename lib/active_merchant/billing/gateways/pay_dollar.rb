@@ -418,8 +418,13 @@ module ActiveMerchant #:nodoc:
 
       private
       def parse_xml_with_records(xml)
-        params = convert_xml_to_hash(xml)
-        PayDollarResponse.new(true, "", params, {})
+        master_xml = xml.get_elements('records/masterSchPay').first
+        master = convert_xml_to_hash(master_xml)
+        if master[:detailSchPay] && !master[:detailSchPay].is_a?(Array)
+          master[:detailSchPay] = [master[:detailSchPay]]
+        end
+
+        PayDollarResponse.new(true, "", master, {})
       end
 
       def parse_xml_with_response(xml)
@@ -438,7 +443,12 @@ module ActiveMerchant #:nodoc:
         if xml.has_elements?
           hash = {}
           xml.each_element do |element|
-            hash[element.name.to_sym] = convert_xml_to_hash(element)
+            if hash[element.name.to_sym]
+              hash[element.name.to_sym] = [hash[element.name.to_sym]] unless hash[element.name.to_sym].is_a? Array
+              hash[element.name.to_sym] << convert_xml_to_hash(element)
+            else
+              hash[element.name.to_sym] = convert_xml_to_hash(element)
+            end
           end
           hash
         else

@@ -123,7 +123,22 @@ class PayDollarTest < Test::Unit::TestCase
     @gateway.expects(:ssl_post).returns(successful_status_recurring_response)
 
     assert response = @gateway.status_recurring(38303, @options)
-    p response
+    master = response.params
+    assert master && master["mSchPayId"] && master["schType"] && master["startDate"] && master["endDate"] && master["merRef"] && master["amount"] && master["payType"] && master["payMethod"] && master["account"] && master["holder"] && master["expiryDate"] && master["status"] && master["suspendDate"] && master["lastTerminateDate"] && master["reActivateDate"] && master["detailSchPay"]
+
+    detail = master["detailSchPay"]
+    assert detail.is_a? Array
+    detail.each do |d|
+      assert d[:dSchPayId] && d[:schType] && d[:orderDate] && d[:tranDate] && d[:currency] && d[:amount] && d[:status] && d[:payRef]
+    end
+  end
+
+  def test_status_recurring_single_detail
+    @gateway.expects(:ssl_post).returns(successful_status_recurring_single_response)
+
+    assert response = @gateway.status_recurring(38303, @options)
+    detail = response.params["detailSchPay"]
+    assert detail.is_a? Array
   end
 
   def successful_delete_card_response
@@ -203,35 +218,80 @@ class PayDollarTest < Test::Unit::TestCase
   def successful_status_recurring_response
     <<-RESPONSE
 <?xml version="1.0" encoding="ISO-8859-1"?>
-  <records>
-    <masterSchPay>
-      <mSchPayId>38263</mSchPayId>
-      <schType>1 Month</schType>
-      <startDate>2014-07-30 00:00:00.0</startDate>
-      <endDate>2014-08-30 00:00:00.0</endDate>
-      <merRef>SCH1</merRef>
-      <amount>99</amount>
-      <payType>N</payType>
-      <payMethod>VISA</payMethod>
-      <account>491891******5005</account>
-      <holder>Test Card</holder>
-      <expiryDate>7/2015</expiryDate>
-      <status>Active</status>
-      <suspendDate>null</suspendDate>
-      <lastTerminateDate>null</lastTerminateDate>
-      <reActivateDate>null</reActivateDate>
-      <detailSchPay>
-        <dSchPayId>604965</dSchPayId>
-        <schType>1 Month</schType>
-        <orderDate>2014-07-30 00:00:00.0</orderDate>
-        <tranDate></tranDate>
-        <currency>US</currency>
-        <amount>99</amount>
-        <status>New</status>
-        <payRef></payRef>
-      </detailSchPay>
-    </masterSchPay>
-  </records>
+<records>
+<masterSchPay>
+<mSchPayId>38303</mSchPayId>
+<schType>1 Day</schType>
+<startDate>2014-07-24 00:00:00.0</startDate>
+<endDate>null</endDate>
+<merRef>1406193882834</merRef>
+<amount>99</amount>
+<payType>N</payType>
+<payMethod>VISA</payMethod>
+<account>491891******5005</account>
+<holder>Test Holder</holder>
+<expiryDate>7/2015</expiryDate>
+<status>Active</status>
+<suspendDate>null</suspendDate>
+<lastTerminateDate>null</lastTerminateDate>
+<reActivateDate>null</reActivateDate>
+<detailSchPay>
+<dSchPayId>606314</dSchPayId>
+<schType>1 Day</schType>
+<orderDate>2014-07-24 00:00:00.0</orderDate>
+<tranDate>2014-07-25 00:00:00.0</tranDate>
+<currency>US</currency>
+<amount>99</amount>
+<status>Accepted</status>
+<payRef>1597533</payRef>
+</detailSchPay>
+<detailSchPay>
+<dSchPayId>606559</dSchPayId>
+<schType>1 Day</schType>
+<orderDate>2014-07-25 00:00:00.0</orderDate>
+<tranDate>2014-07-26 00:00:00.0</tranDate>
+<currency>US</currency>
+<amount>99</amount>
+<status>Accepted</status>
+<payRef>1598758</payRef>
+</detailSchPay>
+</masterSchPay>
+</records>
+    RESPONSE
+  end
+
+  def successful_status_recurring_single_response
+    <<-RESPONSE
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<records>
+<masterSchPay>
+<mSchPayId>38303</mSchPayId>
+<schType>1 Day</schType>
+<startDate>2014-07-24 00:00:00.0</startDate>
+<endDate>null</endDate>
+<merRef>1406193882834</merRef>
+<amount>99</amount>
+<payType>N</payType>
+<payMethod>VISA</payMethod>
+<account>491891******5005</account>
+<holder>Test Holder</holder>
+<expiryDate>7/2015</expiryDate>
+<status>Active</status>
+<suspendDate>null</suspendDate>
+<lastTerminateDate>null</lastTerminateDate>
+<reActivateDate>null</reActivateDate>
+<detailSchPay>
+<dSchPayId>606314</dSchPayId>
+<schType>1 Day</schType>
+<orderDate>2014-07-24 00:00:00.0</orderDate>
+<tranDate>2014-07-25 00:00:00.0</tranDate>
+<currency>US</currency>
+<amount>99</amount>
+<status>Accepted</status>
+<payRef>1597533</payRef>
+</detailSchPay>
+</masterSchPay>
+</records>
     RESPONSE
   end
 

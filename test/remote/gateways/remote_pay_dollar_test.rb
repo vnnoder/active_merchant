@@ -260,19 +260,19 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert_equal "Add Successfully.", response.message
   end
 
-  def test_recurring
+  def test_status_recurring
     gateway = PayDollarGateway.new(fixtures(:pay_dollar))
-    options = {
-      :start_day => Date.today.day,
-      :start_month => Date.today.month,
-      :start_year => Date.today.year,
-      :email => "user@example.com",
-      :number_of_type => 1,
-      :schedule_type => "Day"
-    }.merge!(@options)
-    assert response = gateway.recurring(99, @credit_card, options)
+    assert response = gateway.status_recurring(38303, @options)
+    p response
     assert_success response
-    assert_equal "Add Successfully.", response.message
+    master = response.params
+    assert master && master["mSchPayId"] && master["schType"] && master["startDate"] && master["endDate"] && master["merRef"] && master["amount"] && master["payType"] && master["payMethod"] && master["account"] && master["holder"] && master["expiryDate"] && master["status"] && master["suspendDate"] && master["lastTerminateDate"] && master["reActivateDate"] && master["detailSchPay"]
+
+    detail = master["detailSchPay"]
+    assert detail.is_a? Array
+    detail.each do |d|
+      assert d[:dSchPayId] && d[:schType] && d[:orderDate] && d[:tranDate] && d[:currency] && d[:amount] && d[:status] && d[:payRef]
+    end
   end
 
 private
