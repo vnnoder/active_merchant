@@ -4,7 +4,7 @@ require 'base64'
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
     class PayDollarGateway < Gateway
-      class_attribute :test_merchant_url, :live_merchant_url
+      class_attribute :test_merchant_url, :live_merchant_url, :test_schedule_url, :live_schedule_url, :test_memberpay_url, :live_memberpay_url, :test_membership_url, :live_membership_url
 
       PURCHASE_HOLD = 'H'
       PURCHASE_NORMAL = 'N'
@@ -49,6 +49,12 @@ module ActiveMerchant #:nodoc:
       self.live_url = 'https://www.paydollar.com/b2c2/eng/dPayment/payComp.jsp'
       self.test_merchant_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/orderApi.jsp'
       self.live_merchant_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/orderApi.jsp'
+      self.test_memberpay_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp'
+      self.live_memberpay_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp'
+      self.test_membership_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp'
+      self.live_membership_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp'
+      self.test_schedule_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/schPayApi.jsp'
+      self.live_schedule_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/schPayApi.jsp'
 
       # The countries the gateway supports merchants from as 2 digit ISO country codes
       self.supported_countries = %w[ HK MY SG US CN ]
@@ -67,23 +73,23 @@ module ActiveMerchant #:nodoc:
         super
       end
 
-      def authorize(money, payment_source, options = {})
+      def authorize(amount, payment_source, options = {})
         options.merge! @options
-        post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_HOLD)
-        add_pair(post, :secureHash, generate_secure_hash(money, PURCHASE_HOLD, options))
+        post = authorize_or_purchase_post(amount, payment_source, options, PURCHASE_HOLD)
+        add_pair(post, :secureHash, generate_secure_hash(amount, PURCHASE_HOLD, options))
 
         commit('authonly', post)
       end
 
-      def purchase(money, payment_source, options = {})
+      def purchase(amount, payment_source, options = {})
         options.merge! @options
-        post = authorize_or_purchase_post(money, payment_source, options, PURCHASE_NORMAL)
-        add_pair(post, :secureHash, generate_secure_hash(money, PURCHASE_NORMAL, options))
+        post = authorize_or_purchase_post(amount, payment_source, options, PURCHASE_NORMAL)
+        add_pair(post, :secureHash, generate_secure_hash(amount, PURCHASE_NORMAL, options))
 
         commit('sale', post)
       end
 
-      def capture(money, authorization, options = {})
+      def capture(amount, authorization, options = {})
         options.merge! @options
         requires!(options, :login, :password)
         post = {}
@@ -91,7 +97,7 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :password, options[:password])
         add_pair(post, :actionType , "Capture")
         add_pair(post, :payRef, authorization)
-        add_pair(post, :amount, money)
+        add_pair(post, :amount, amount)
         add_pair(post, :currCode, options[:currency])
 
         commit('capture', post)
@@ -204,13 +210,70 @@ module ActiveMerchant #:nodoc:
         commit('store', post)
       end
 
+      def recurring(amount, creditcard, options = {})
+        options.merge! @options
+        post = {}
+
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
+        add_pair(post, :actionType, "AddSchPay")
+
+        add_pair(post, :sDay, options[:start_day])
+        add_pair(post, :sMonth, options[:start_month])
+        add_pair(post, :sYear, options[:start_year])
+        add_pair(post, :eDay, options[:end_day])
+        add_pair(post, :eMonth, options[:end_month])
+        add_pair(post, :eYear, options[:end_year])
+
+
+        add_pair(post, :amount, amount)
+        add_pair(post, :name, options[:name])
+        add_pair(post, :email, options[:email])
+        add_pair(post, :remark, options[:remark])
+        add_pair(post, :orderRef, options[:order_id])
+        add_pair(post, :payRef, options[:pay_ref])
+        add_pair(post, :mSchPayId, options[:master_id])
+        add_pair(post, :status, options[:status] || "Active")
+        add_pair(post, :nSch, options[:number_of_type])
+        add_pair(post, :schType, options[:schedule_type])
+        add_pair(post, :payType, options[:pay_type] || "N")
+
+        add_pair(post, :pMethod, creditcard.brand.upcase)
+        add_pair(post, :epMonth, creditcard.month)
+        add_pair(post, :epYear, creditcard.year)
+        add_pair(post, :orderAcct, creditcard.number)
+        add_pair(post, :holderName, creditcard.name)
+
+        commit('recurring', post)
+      end
+
+      def status_recurring(schedule_id, options = {})
+        options.merge! @options
+        post = {}
+
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
+        add_pair(post, :actionType, "Query")
+        add_pair(post, :mSchPayId, schedule_id)
+
+        commit('status_recurring', post)
+      end
+
+      def update_recurring(amount, source, options = {})
+
+      end
+
+      def cancel_recurring(options = {})
+
+      end
+
     protected
-      def authorize_or_purchase_post(money, payment_source, options = {}, type)
+      def authorize_or_purchase_post(amount, payment_source, options = {}, type)
         post = {}
         add_invoice(post, options)
         if payment_source.is_a?(String)
           #purchase with memberpay
-          response = generate_one_time_token(payment_source, money, options)
+          response = generate_one_time_token(payment_source, amount, options)
           options[:token] = response.params["token"]
           add_customer_data(post, options)
         else
@@ -220,7 +283,7 @@ module ActiveMerchant #:nodoc:
 
         add_pair(post, :lang, options[:lang])
         add_pair(post, :payType, type)
-        add_pair(post, :amount, money)
+        add_pair(post, :amount, amount)
         return post
       end
 
@@ -261,59 +324,16 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :securityCode, creditcard.verification_value)
       end
 
-      #parse data from response
-      def parse(body)
-        if is_xml?(body)
-          parse_xml body
-        else
-          parse_query body
-        end
-      end
-
-      def parse_xml(body)
-        xml = REXML::Document.new(body)
-        response_status = params = {}
-        xml.elements.each('*/responsestatus/*') do |element|
-          response_status[element.name.underscore.to_sym] = element.text
-        end
-        xml.elements.each('*/response/*') do |element|
-          params[element.name.underscore.to_sym] = element.text
-        end
-        params[:account] = {}
-        xml.elements.each('*/response/account/*') do |element|
-          params[:account][element.name.underscore.to_sym] = element.text
-        end
-
-        success = response_status[:responsecode] == "0"
-        message = response_status[:responsemessage]
-        options = {}
-        options[:test] = test?
-
-        PayDollarResponse.new(success, message, params, options)
-      end
-
-      def parse_query(body)
-        return_params = parse_response body
-        if return_params["successcode"] #purchase & authorize
-          success = return_params.delete("successcode") == "0"
-        elsif return_params["resultCode"] #capture
-          success = return_params.delete("resultCode") == "0"
-        end
-        message = return_params.delete("errMsg").strip
-        options[:test] = test?
-        options[:authorization] = return_params.delete("PayRef")
-        PayDollarResponse.new(success, message, return_params, options)
-      end
-
       #post action to server
       def commit(action, parameters)
         add_pair(parameters, :merchantId, @options[:merchant])
 
         data = post_data(action, parameters)
+        p "post_url(action):#{post_url(action)}"
         raw_response = ssl_post(post_url(action), data)
         log_transaction(data, raw_response, action) unless action == 'store'
 
-        parse(raw_response)
+        PayDollarResponseParser.new(raw_response).parse
       end
 
       def log_transaction(request, response, action)
@@ -332,28 +352,17 @@ module ActiveMerchant #:nodoc:
         when 'capture', 'void', 'reverse_auth'
           test? ? self.test_merchant_url : self.live_merchant_url
         when 'store'
-          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp"
+          test? ? self.test_memberpay_url : self.live_memberpay_url
         when 'membership'
-          test? ? "https://test.paydollar.com/b2cDemo/eng/merchant/api/MembershipApi.jsp" : "https://www.paydollar.com/b2c2/eng/merchant/api/MembershipApi.jsp"
+          test? ? self.test_membership_url : self.live_membership_url
+        when 'recurring', 'status_recurring'
+          test? ? self.test_schedule_url : self.live_schedule_url
         end
 
       end
 
       def add_pair(post, key, value)
         post[key] = value
-      end
-
-      def parse_response(body)
-        body.split("&").inject({}) do |hash, key_value|
-          key, value = key_value.split("=")
-          hash[key] = value
-          hash
-        end
-      end
-
-      def is_xml?(body)
-        striped_body = body.strip
-        striped_body.start_with?("<") && striped_body.end_with?(">")
       end
 
       def base64_decrypt(static_token, password, salt)
@@ -365,10 +374,104 @@ module ActiveMerchant #:nodoc:
         aes.update(Base64::decode64(static_token))+aes.final
       end
 
-      def generate_secure_hash(money, payment_type, options)
-        to_be_hashed = "#{options[:merchant]}|#{options[:order_id]}|#{options[:currency]}|#{money}|#{payment_type}|#{options[:secure_hash_secret]}"
+      def generate_secure_hash(amount, payment_type, options)
+        to_be_hashed = "#{options[:merchant]}|#{options[:order_id]}|#{options[:currency]}|#{amount}|#{payment_type}|#{options[:secure_hash_secret]}"
         puts "to_be_hashed: #{to_be_hashed}"
         Digest::SHA1.hexdigest to_be_hashed
+      end
+    end
+
+
+    class PayDollarResponseParser
+      def initialize(raw_response)
+        @raw_response = raw_response
+      end
+      #parse data from response
+      def parse
+        if response_is_xml?
+          PayDollarXMLResponseParser.new(@raw_response).parse
+        else
+          PayDollarQueryResponseParser.new(@raw_response).parse
+        end
+      end
+
+      private
+      def response_is_xml?
+        striped_body = @raw_response.strip
+        striped_body.start_with?("<") && striped_body.end_with?(">")
+      end
+    end
+
+    class PayDollarXMLResponseParser
+      def initialize(raw_response)
+        @raw_response = raw_response
+      end
+
+      def parse
+        xml = REXML::Document.new(@raw_response)
+        if xml.get_elements("/records").present?
+          parse_xml_with_records(xml)
+        else
+          parse_xml_with_response(xml)
+        end
+      end
+
+      private
+      def parse_xml_with_records(xml)
+        params = convert_xml_to_hash(xml)
+        PayDollarResponse.new(true, "", params, {})
+      end
+
+      def parse_xml_with_response(xml)
+        response_status_xml = xml.get_elements('*/responsestatus').first
+        response_status = convert_xml_to_hash(response_status_xml)
+
+        response_account_xml = xml.get_elements('*/response').first
+        response_account = convert_xml_to_hash(response_account_xml)
+
+        success = response_status[:responsecode] == "0"
+        message = response_status[:responsemessage]
+        PayDollarResponse.new(success, message, response_account, {})
+      end
+
+      def convert_xml_to_hash(xml)
+        if xml.has_elements?
+          hash = {}
+          xml.each_element do |element|
+            hash[element.name.to_sym] = convert_xml_to_hash(element)
+          end
+          hash
+        else
+          xml.text || {}
+        end
+      end
+
+    end
+
+    class PayDollarQueryResponseParser
+      def initialize(raw_response)
+        @raw_response = raw_response
+      end
+
+      def parse
+        return_params = parse_response
+        if return_params["successcode"] #purchase & authorize
+          success = return_params.delete("successcode") == "0"
+        elsif return_params["resultCode"] #capture
+          success = return_params.delete("resultCode") == "0"
+        end
+        message = return_params.delete("errMsg").strip
+        options = {:authorization => return_params.delete("PayRef") }
+        PayDollarResponse.new(success, message, return_params, options)
+      end
+
+      private
+      def parse_response
+        @raw_response.split("&").inject({}) do |hash, key_value|
+          key, value = key_value.split("=")
+          hash[key] = value
+          hash
+        end
       end
     end
 

@@ -25,7 +25,6 @@ class PayDollarTest < Test::Unit::TestCase
 
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
-    assert response.test?
     assert_equal 'Transaction completed', response.message
   end
 
@@ -45,7 +44,6 @@ class PayDollarTest < Test::Unit::TestCase
     @options.update({:address => address})
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
-    assert response.test?
     assert_equal 'Transaction completed', response.message
   end
 
@@ -58,7 +56,6 @@ class PayDollarTest < Test::Unit::TestCase
 
     # Replace with authorization number from the successful response
     assert response.authorization
-    assert response.test?
   end
 
   def test_failed_capture
@@ -90,7 +87,6 @@ class PayDollarTest < Test::Unit::TestCase
     assert response = @gateway.add_membership(@options)
     assert_success response
     assert_equal 'OK', response.message
-    assert response.test?
   end
 
   def test_retrieve_card
@@ -99,11 +95,11 @@ class PayDollarTest < Test::Unit::TestCase
     @options[:name] = "John Doe"
 
     assert response = @gateway.retrieve_card(@options)
+    p response.params["account"]
     assert_success response
     assert_equal 'OK', response.message
-    assert response.test?
     acc = response.params["account"]
-    assert acc[:account_id] && acc[:accounttype] && acc[:account] && acc[:expyear] && acc[:expmonth] && acc[:holdername] && acc[:status]
+    assert acc[:accountId] && acc[:accounttype] && acc[:account] && acc[:expyear] && acc[:expmonth] && acc[:holdername] && acc[:status]
   end
 
   def test_delete_card
@@ -113,7 +109,21 @@ class PayDollarTest < Test::Unit::TestCase
     assert response = @gateway.delete_card(@options)
     assert_success response
     assert_equal 'OK', response.message
-    assert response.test?
+  end
+
+  def test_recurring
+    @gateway.expects(:ssl_post).returns(successful_recurring_response)
+
+    assert response = @gateway.recurring(99, @credit_card, @options)
+    assert_success response
+    assert_equal "Add Successfully.", response.message
+  end
+
+  def test_status_recurring
+    @gateway.expects(:ssl_post).returns(successful_status_recurring_response)
+
+    assert response = @gateway.status_recurring(38303, @options)
+    p response
   end
 
   def successful_delete_card_response
@@ -185,6 +195,46 @@ class PayDollarTest < Test::Unit::TestCase
   def invalid_login_response
     "resultCode=-1&orderStatus=&ref=&payRef=&amt=&cur=&errMsg=Authentication Failed"
   end
+
+  def successful_recurring_response
+    "resultCode=0&mSchPayId=38262&merchantId=12103014&orderRef=SCH1&status=Active&errMsg=Add Successfully."
+  end
+
+  def successful_status_recurring_response
+    <<-RESPONSE
+<?xml version="1.0" encoding="ISO-8859-1"?>
+  <records>
+    <masterSchPay>
+      <mSchPayId>38263</mSchPayId>
+      <schType>1 Month</schType>
+      <startDate>2014-07-30 00:00:00.0</startDate>
+      <endDate>2014-08-30 00:00:00.0</endDate>
+      <merRef>SCH1</merRef>
+      <amount>99</amount>
+      <payType>N</payType>
+      <payMethod>VISA</payMethod>
+      <account>491891******5005</account>
+      <holder>Test Card</holder>
+      <expiryDate>7/2015</expiryDate>
+      <status>Active</status>
+      <suspendDate>null</suspendDate>
+      <lastTerminateDate>null</lastTerminateDate>
+      <reActivateDate>null</reActivateDate>
+      <detailSchPay>
+        <dSchPayId>604965</dSchPayId>
+        <schType>1 Month</schType>
+        <orderDate>2014-07-30 00:00:00.0</orderDate>
+        <tranDate></tranDate>
+        <currency>US</currency>
+        <amount>99</amount>
+        <status>New</status>
+        <payRef></payRef>
+      </detailSchPay>
+    </masterSchPay>
+  </records>
+    RESPONSE
+  end
+
 private
 
   def credit_card(brand, month, year, number, name, verification_value)
