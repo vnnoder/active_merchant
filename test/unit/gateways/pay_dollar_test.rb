@@ -119,6 +119,13 @@ class PayDollarTest < Test::Unit::TestCase
     assert_equal "Add Successfully.", response.message
   end
 
+  def test_invalid_recurring
+    @gateway.expects(:ssl_post).returns(invalid_recurring_response)
+
+    assert response = @gateway.recurring(99, @credit_card, @options)
+    assert_failure response
+  end
+
   def test_status_recurring
     @gateway.expects(:ssl_post).returns(successful_status_recurring_response)
 
@@ -139,6 +146,13 @@ class PayDollarTest < Test::Unit::TestCase
     assert response = @gateway.status_recurring(38303, @options)
     detail = response.params["detailSchPay"]
     assert detail.is_a? Array
+  end
+
+  def test_invalid_status_recurring
+    @gateway.expects(:ssl_post).returns(invalid_status_recurring_reponse)
+
+    assert response = @gateway.status_recurring(3826300, @options)
+    p response
   end
 
   def successful_delete_card_response
@@ -213,6 +227,10 @@ class PayDollarTest < Test::Unit::TestCase
 
   def successful_recurring_response
     "resultCode=0&mSchPayId=38262&merchantId=12103014&orderRef=SCH1&status=Active&errMsg=Add Successfully."
+  end
+
+  def invalid_recurring_response
+    "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=Parameter cardNo don't match card Type"
   end
 
   def successful_status_recurring_response
@@ -290,6 +308,16 @@ class PayDollarTest < Test::Unit::TestCase
 <status>Accepted</status>
 <payRef>1597533</payRef>
 </detailSchPay>
+</masterSchPay>
+</records>
+    RESPONSE
+  end
+
+  def invalid_status_recurring_reponse
+    <<-RESPONSE
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<records>
+<masterSchPay>
 </masterSchPay>
 </records>
     RESPONSE

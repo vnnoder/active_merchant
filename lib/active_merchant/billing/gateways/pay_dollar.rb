@@ -424,7 +424,9 @@ module ActiveMerchant #:nodoc:
           master[:detailSchPay] = [master[:detailSchPay]]
         end
 
-        PayDollarResponse.new(true, "", master, {})
+        success = !!master[:detailSchPay]
+        message = success ? "" : "Request is not successful"
+        PayDollarResponse.new(true, message, master, {})
       end
 
       def parse_xml_with_response(xml)
@@ -452,7 +454,8 @@ module ActiveMerchant #:nodoc:
           end
           hash
         else
-          xml.text || {}
+          text = xml.text.try(:strip)
+          text.present? ? text : {}
         end
       end
 
