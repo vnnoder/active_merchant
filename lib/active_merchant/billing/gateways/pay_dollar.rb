@@ -51,8 +51,8 @@ module ActiveMerchant #:nodoc:
       self.live_merchant_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/orderApi.jsp'
       self.test_memberpay_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp'
       self.live_memberpay_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp'
-      self.test_membership_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/MemberPayApi.jsp'
-      self.live_membership_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/MemberPayApi.jsp'
+      self.test_membership_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/MembershipApi.jsp'
+      self.live_membership_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/MembershipApi.jsp'
       self.test_schedule_url = 'https://test.paydollar.com/b2cDemo/eng/merchant/api/schPayApi.jsp'
       self.live_schedule_url = 'https://www.paydollar.com/b2c2/eng/merchant/api/schPayApi.jsp'
 
@@ -329,7 +329,6 @@ module ActiveMerchant #:nodoc:
         add_pair(parameters, :merchantId, @options[:merchant])
 
         data = post_data(action, parameters)
-        p "post_url(action):#{post_url(action)}"
         raw_response = ssl_post(post_url(action), data)
         log_transaction(data, raw_response, action) unless action == 'store'
 
