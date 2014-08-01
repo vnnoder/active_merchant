@@ -434,6 +434,10 @@ module ActiveMerchant #:nodoc:
 
         response_account_xml = xml.get_elements('*/response').first
         response_account = convert_xml_to_hash(response_account_xml)
+        # should return only one account
+        if response_account[:account] && response_account[:account].is_a?(Array)
+          response_account[:account] = response_account[:account].first
+        end
 
         success = response_status[:responsecode] == "0"
         message = response_status[:responsemessage]
