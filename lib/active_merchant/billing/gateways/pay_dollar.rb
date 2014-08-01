@@ -238,7 +238,7 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :schType, options[:schedule_type])
         add_pair(post, :payType, options[:pay_type] || "N")
 
-        add_pair(post, :pMethod, creditcard.brand.upcase)
+        add_pair(post, :pMethod, creditcard.brand)
         add_pair(post, :epMonth, creditcard.month)
         add_pair(post, :epYear, creditcard.year)
         add_pair(post, :orderAcct, creditcard.number)
@@ -316,7 +316,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_creditcard(post, creditcard)
-        add_pair(post, :pMethod, creditcard.brand.upcase)
+        add_pair(post, :pMethod, creditcard.brand)
         add_pair(post, :epMonth, creditcard.month)
         add_pair(post, :epYear, creditcard.year)
         add_pair(post, :cardNo, creditcard.number)
