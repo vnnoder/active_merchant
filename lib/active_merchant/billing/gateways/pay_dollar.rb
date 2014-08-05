@@ -93,8 +93,8 @@ module ActiveMerchant #:nodoc:
         options.merge! @options
         requires!(options, :login, :password)
         post = {}
-        add_pair(post, :loginId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication(post, options)
+
         add_pair(post, :actionType , "Capture")
         add_pair(post, :payRef, authorization)
         add_pair(post, :amount, amount)
@@ -107,8 +107,8 @@ module ActiveMerchant #:nodoc:
         options.merge! @options
         requires!(options, :login, :password)
         post = {}
-        add_pair(post, :loginId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication(post, options)
+
         add_pair(post, :actionType , "Void")
         add_pair(post, :payRef, authorization)
 
@@ -119,8 +119,8 @@ module ActiveMerchant #:nodoc:
         options.merge! @options
         requires!(options, :login, :password)
         post = {}
-        add_pair(post, :loginId, options[:login])
-        add_pair(post, :password, options[:password])
+
+        add_authentication(post, options)
         add_pair(post, :actionType , "Reverse")
         add_pair(post, :payRef, authorization)
 
@@ -132,8 +132,8 @@ module ActiveMerchant #:nodoc:
         requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication_memberpay(post, options)
+
         add_pair(post, :actionType , "Add")
         add_pair(post, :status , STATUS_ACTIVE)
         add_pair(post, :memberId, options[:customer])
@@ -152,8 +152,8 @@ module ActiveMerchant #:nodoc:
         requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication_memberpay(post, options)
+
         add_pair(post, :actionType, "Delete")
         add_pair(post, :memberId, options[:customer])
 
@@ -165,8 +165,8 @@ module ActiveMerchant #:nodoc:
         requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication_memberpay(post, options)
+
         add_pair(post, :actionType, "Query")
         add_pair(post, :memberId, options[:customer])
 
@@ -178,8 +178,8 @@ module ActiveMerchant #:nodoc:
         requires!(options, :login, :password)
         post = {}
 
-        add_pair(post, :merchantApiId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication_memberpay(post, options)
+
         add_pair(post, :actionType , "Add")
         add_pair(post, :status , STATUS_ACTIVE)
         add_pair(post, :memberId, options[:customer])
@@ -197,8 +197,8 @@ module ActiveMerchant #:nodoc:
         decripted_token = base64_decrypt(static_token, options[:decrypt_key], options[:decrypt_salt])
         post = {}
 
-        add_pair(post, :merchantApiId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication_memberpay(post, options)
+
         add_pair(post, :actionType , "GenerateToken")
         add_pair(post, :memberId, options[:customer])
         add_pair(post, :accountId, 0)
@@ -212,12 +212,12 @@ module ActiveMerchant #:nodoc:
 
       def recurring(amount, creditcard, options = {})
         options.merge! @options
+        requires!(options, :login, :password, :start_day, :start_month, :start_year, :number_of_type, :schedule_type)
         post = {}
 
-        add_pair(post, :loginId, options[:login])
-        add_pair(post, :password, options[:password])
-        add_pair(post, :actionType, "AddSchPay")
+        add_authentication(post, options)
 
+        add_pair(post, :actionType, "AddSchPay")
         add_pair(post, :sDay, options[:start_day])
         add_pair(post, :sMonth, options[:start_month])
         add_pair(post, :sYear, options[:start_year])
@@ -251,8 +251,8 @@ module ActiveMerchant #:nodoc:
         options.merge! @options
         post = {}
 
-        add_pair(post, :loginId, options[:login])
-        add_pair(post, :password, options[:password])
+        add_authentication(post, options)
+
         add_pair(post, :actionType, "Query")
         add_pair(post, :mSchPayId, schedule_id)
 
@@ -285,6 +285,16 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :payType, type)
         add_pair(post, :amount, amount)
         return post
+      end
+
+      def add_authentication(post, options)
+        add_pair(post, :loginId, options[:login])
+        add_pair(post, :password, options[:password])
+      end
+
+      def add_authentication_memberpay(post, options)
+        add_pair(post, :merchantApiId, options[:login])
+        add_pair(post, :password, options[:password])
       end
 
       def add_customer_data(post, options)
@@ -332,7 +342,7 @@ module ActiveMerchant #:nodoc:
         raw_response = ssl_post(post_url(action), data)
         log_transaction(data, raw_response, action) unless action == 'store'
 
-        PayDollarResponseParser.new(raw_response).parse
+        PayDollarResponseParserFactory.new(raw_response).get_instance.parse
       end
 
       def log_transaction(request, response, action)
@@ -381,16 +391,16 @@ module ActiveMerchant #:nodoc:
     end
 
 
-    class PayDollarResponseParser
+    class PayDollarResponseParserFactory
       def initialize(raw_response)
         @raw_response = raw_response
       end
       #parse data from response
-      def parse
+      def get_instance
         if response_is_xml?
-          PayDollarXMLResponseParser.new(@raw_response).parse
+          PayDollarXMLResponseParser.new(@raw_response)
         else
-          PayDollarQueryResponseParser.new(@raw_response).parse
+          PayDollarQueryResponseParser.new(@raw_response)
         end
       end
 

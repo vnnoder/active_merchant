@@ -113,16 +113,32 @@ class PayDollarTest < Test::Unit::TestCase
 
   def test_recurring
     @gateway.expects(:ssl_post).returns(successful_recurring_response)
+    options = {
+      :start_day => Date.today.day,
+      :start_month => Date.today.month,
+      :start_year => Date.today.year,
+      :email => "user@example.com",
+      :number_of_type => 1,
+      :schedule_type => "Day"
+    }.merge!(@options)
 
-    assert response = @gateway.recurring(99, @credit_card, @options)
+    assert response = @gateway.recurring(99, @credit_card, options)
     assert_success response
     assert_equal "Add Successfully.", response.message
   end
 
   def test_invalid_recurring
     @gateway.expects(:ssl_post).returns(invalid_recurring_response)
+    options = {
+      :start_day => Date.today.day,
+      :start_month => Date.today.month,
+      :start_year => Date.today.year,
+      :email => "user@example.com",
+      :number_of_type => 1,
+      :schedule_type => "Day"
+    }.merge!(@options)
 
-    assert response = @gateway.recurring(99, @credit_card, @options)
+    assert response = @gateway.recurring(99, @credit_card, options)
     assert_failure response
   end
 
@@ -149,185 +165,243 @@ class PayDollarTest < Test::Unit::TestCase
   end
 
   def test_invalid_status_recurring
-    @gateway.expects(:ssl_post).returns(invalid_status_recurring_reponse)
+    @gateway.expects(:ssl_post).returns(invalid_status_recurring_response)
 
     assert response = @gateway.status_recurring(3826300, @options)
     p response
   end
 
-  def successful_delete_card_response
-    <<-RESPONSE
-<membershipresponse>
-  <action>Delete</action>
-  <responsestatus>
-      <responsecode>0</responsecode>
-      <responsemessage>OK</responsemessage>
-  </responsestatus>
-  <response/>
-</membershipresponse>
-    RESPONSE
-  end
+  # def test_cancel_recurring_success
+  #   @gateway.expects(:ssl_post).returns(successful_cancel_recurring_response)
+  #   assert response = @gateway.cancel_recurring(3826300, @options)
+  #   p response
+  # end
 
-  def successful_query_memberpay_response
-    <<-RESPONSE
-<memberpayresponse>
-  <action>Query</action>
-  <responsestatus>
-    <responsecode>0</responsecode>
-    <responsemessage>OK</responsemessage>
-  </responsestatus>
-  <response>
-    <account>
-      <accountId>1</accountId>
-      <accounttype>VISA</accounttype>
-      <account>491891******5005</account>
-      <expyear>2015</expyear>
-      <expmonth>7</expmonth>
-      <holdername>Test Holder</holdername>
-      <status>A</status>
-    </account>
-  </response>
-</memberpayresponse>
-    RESPONSE
-  end
+  protected
 
-  def successful_add_membership_response
-    <<-STORE_RESPONSE
-<?xml version="1.0" encoding="ISO-8859-1"?>
+    def successful_delete_card_response
+      <<-RESPONSE
   <membershipresponse>
-    <action>Add</action>
+    <action>Delete</action>
+    <responsestatus>
+        <responsecode>0</responsecode>
+        <responsemessage>OK</responsemessage>
+    </responsestatus>
+    <response/>
+  </membershipresponse>
+      RESPONSE
+    end
+
+    def successful_query_memberpay_response
+      <<-RESPONSE
+  <memberpayresponse>
+    <action>Query</action>
     <responsestatus>
       <responsecode>0</responsecode>
       <responsemessage>OK</responsemessage>
     </responsestatus>
-  <response/>
-</membershipresponse>
-    STORE_RESPONSE
-  end
+    <response>
+      <account>
+        <accountId>1</accountId>
+        <accounttype>VISA</accounttype>
+        <account>491891******5005</account>
+        <expyear>2015</expyear>
+        <expmonth>7</expmonth>
+        <holdername>Test Holder</holdername>
+        <status>A</status>
+      </account>
+    </response>
+  </memberpayresponse>
+      RESPONSE
+    end
 
-  def successful_purchase_response
-    "successcode=0&Ref=REF1&PayRef=1296297&Amt=10.0&Cur=702&prc=0&src=0&Ord=12345678&Holder=Test Holder&AuthId=296297&TxTime=2013-11-21 12:01:36.0&errMsg=Transaction completed"
-  end
+    def successful_add_membership_response
+      <<-STORE_RESPONSE
+  <?xml version="1.0" encoding="ISO-8859-1"?>
+    <membershipresponse>
+      <action>Add</action>
+      <responsestatus>
+        <responsecode>0</responsecode>
+        <responsemessage>OK</responsemessage>
+      </responsestatus>
+    <response/>
+  </membershipresponse>
+      STORE_RESPONSE
+    end
 
-  def successful_authorization_response
-    "successcode=0&Ref=REF1&PayRef=1296294&Amt=10.0&Cur=702&prc=0&src=0&Ord=12345678&Holder=Test Holder&AuthId=296294&TxTime=2013-11-21 12:01:30.0&errMsg=Transaction completed"
-  end
+    def successful_purchase_response
+      "successcode=0&Ref=REF1&PayRef=1296297&Amt=10.0&Cur=702&prc=0&src=0&Ord=12345678&Holder=Test Holder&AuthId=296297&TxTime=2013-11-21 12:01:36.0&errMsg=Transaction completed"
+    end
 
-  def failed_capture_response
-    "resultCode=-1&orderStatus=&ref=&payRef=&amt=&cur=&errMsg=Parameter Payment Reference Number Incorrect."
-  end
+    def successful_authorization_response
+      "successcode=0&Ref=REF1&PayRef=1296294&Amt=10.0&Cur=702&prc=0&src=0&Ord=12345678&Holder=Test Holder&AuthId=296294&TxTime=2013-11-21 12:01:30.0&errMsg=Transaction completed"
+    end
 
-  def invalid_merchant_response
-    "successcode=-1&Ref=&PayRef=&Amt=&Cur=&prc=&src=&Ord=&Holder=&AuthId=&TxTime=&errMsg=Parameter Merchant Id Incorrect"
-  end
+    def failed_capture_response
+      "resultCode=-1&orderStatus=&ref=&payRef=&amt=&cur=&errMsg=Parameter Payment Reference Number Incorrect."
+    end
 
-  def invalid_login_response
-    "resultCode=-1&orderStatus=&ref=&payRef=&amt=&cur=&errMsg=Authentication Failed"
-  end
+    def invalid_merchant_response
+      "successcode=-1&Ref=&PayRef=&Amt=&Cur=&prc=&src=&Ord=&Holder=&AuthId=&TxTime=&errMsg=Parameter Merchant Id Incorrect"
+    end
 
-  def successful_recurring_response
-    "resultCode=0&mSchPayId=38262&merchantId=12103014&orderRef=SCH1&status=Active&errMsg=Add Successfully."
-  end
+    def invalid_login_response
+      "resultCode=-1&orderStatus=&ref=&payRef=&amt=&cur=&errMsg=Authentication Failed"
+    end
 
-  def invalid_recurring_response
-    "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=Parameter cardNo don't match card Type"
-  end
+    def successful_recurring_response
+      "resultCode=0&mSchPayId=38262&merchantId=12103014&orderRef=SCH1&status=Active&errMsg=Add Successfully."
+    end
 
-  def successful_status_recurring_response
-    <<-RESPONSE
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<records>
-<masterSchPay>
-<mSchPayId>38303</mSchPayId>
-<schType>1 Day</schType>
-<startDate>2014-07-24 00:00:00.0</startDate>
-<endDate>null</endDate>
-<merRef>1406193882834</merRef>
-<amount>99</amount>
-<payType>N</payType>
-<payMethod>VISA</payMethod>
-<account>491891******5005</account>
-<holder>Test Holder</holder>
-<expiryDate>7/2015</expiryDate>
-<status>Active</status>
-<suspendDate>null</suspendDate>
-<lastTerminateDate>null</lastTerminateDate>
-<reActivateDate>null</reActivateDate>
-<detailSchPay>
-<dSchPayId>606314</dSchPayId>
-<schType>1 Day</schType>
-<orderDate>2014-07-24 00:00:00.0</orderDate>
-<tranDate>2014-07-25 00:00:00.0</tranDate>
-<currency>US</currency>
-<amount>99</amount>
-<status>Accepted</status>
-<payRef>1597533</payRef>
-</detailSchPay>
-<detailSchPay>
-<dSchPayId>606559</dSchPayId>
-<schType>1 Day</schType>
-<orderDate>2014-07-25 00:00:00.0</orderDate>
-<tranDate>2014-07-26 00:00:00.0</tranDate>
-<currency>US</currency>
-<amount>99</amount>
-<status>Accepted</status>
-<payRef>1598758</payRef>
-</detailSchPay>
-</masterSchPay>
-</records>
-    RESPONSE
-  end
+    def invalid_recurring_response
+      "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=Parameter cardNo don't match card Type"
+    end
 
-  def successful_status_recurring_single_response
-    <<-RESPONSE
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<records>
-<masterSchPay>
-<mSchPayId>38303</mSchPayId>
-<schType>1 Day</schType>
-<startDate>2014-07-24 00:00:00.0</startDate>
-<endDate>null</endDate>
-<merRef>1406193882834</merRef>
-<amount>99</amount>
-<payType>N</payType>
-<payMethod>VISA</payMethod>
-<account>491891******5005</account>
-<holder>Test Holder</holder>
-<expiryDate>7/2015</expiryDate>
-<status>Active</status>
-<suspendDate>null</suspendDate>
-<lastTerminateDate>null</lastTerminateDate>
-<reActivateDate>null</reActivateDate>
-<detailSchPay>
-<dSchPayId>606314</dSchPayId>
-<schType>1 Day</schType>
-<orderDate>2014-07-24 00:00:00.0</orderDate>
-<tranDate>2014-07-25 00:00:00.0</tranDate>
-<currency>US</currency>
-<amount>99</amount>
-<status>Accepted</status>
-<payRef>1597533</payRef>
-</detailSchPay>
-</masterSchPay>
-</records>
-    RESPONSE
-  end
+    def successful_status_recurring_response
+      <<-RESPONSE
+  <?xml version="1.0" encoding="ISO-8859-1"?>
+  <records>
+  <masterSchPay>
+  <mSchPayId>38303</mSchPayId>
+  <schType>1 Day</schType>
+  <startDate>2014-07-24 00:00:00.0</startDate>
+  <endDate>null</endDate>
+  <merRef>1406193882834</merRef>
+  <amount>99</amount>
+  <payType>N</payType>
+  <payMethod>VISA</payMethod>
+  <account>491891******5005</account>
+  <holder>Test Holder</holder>
+  <expiryDate>7/2015</expiryDate>
+  <status>Active</status>
+  <suspendDate>null</suspendDate>
+  <lastTerminateDate>null</lastTerminateDate>
+  <reActivateDate>null</reActivateDate>
+  <detailSchPay>
+  <dSchPayId>606314</dSchPayId>
+  <schType>1 Day</schType>
+  <orderDate>2014-07-24 00:00:00.0</orderDate>
+  <tranDate>2014-07-25 00:00:00.0</tranDate>
+  <currency>US</currency>
+  <amount>99</amount>
+  <status>Accepted</status>
+  <payRef>1597533</payRef>
+  </detailSchPay>
+  <detailSchPay>
+  <dSchPayId>606559</dSchPayId>
+  <schType>1 Day</schType>
+  <orderDate>2014-07-25 00:00:00.0</orderDate>
+  <tranDate>2014-07-26 00:00:00.0</tranDate>
+  <currency>US</currency>
+  <amount>99</amount>
+  <status>Accepted</status>
+  <payRef>1598758</payRef>
+  </detailSchPay>
+  </masterSchPay>
+  </records>
+      RESPONSE
+    end
 
-  def invalid_status_recurring_reponse
-    <<-RESPONSE
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<records>
-<masterSchPay>
-</masterSchPay>
-</records>
-    RESPONSE
-  end
+    def successful_status_recurring_single_response
+      <<-RESPONSE
+  <?xml version="1.0" encoding="ISO-8859-1"?>
+  <records>
+  <masterSchPay>
+  <mSchPayId>38303</mSchPayId>
+  <schType>1 Day</schType>
+  <startDate>2014-07-24 00:00:00.0</startDate>
+  <endDate>null</endDate>
+  <merRef>1406193882834</merRef>
+  <amount>99</amount>
+  <payType>N</payType>
+  <payMethod>VISA</payMethod>
+  <account>491891******5005</account>
+  <holder>Test Holder</holder>
+  <expiryDate>7/2015</expiryDate>
+  <status>Active</status>
+  <suspendDate>null</suspendDate>
+  <lastTerminateDate>null</lastTerminateDate>
+  <reActivateDate>null</reActivateDate>
+  <detailSchPay>
+  <dSchPayId>606314</dSchPayId>
+  <schType>1 Day</schType>
+  <orderDate>2014-07-24 00:00:00.0</orderDate>
+  <tranDate>2014-07-25 00:00:00.0</tranDate>
+  <currency>US</currency>
+  <amount>99</amount>
+  <status>Accepted</status>
+  <payRef>1597533</payRef>
+  </detailSchPay>
+  </masterSchPay>
+  </records>
+      RESPONSE
+    end
 
-private
+    def successful_status_recurring_suspend_response
+      <<-RESPONSE
+      <?xml version="1.0" encoding="ISO-8859-1"?>
+  <records>
+  <masterSchPay>
+  <mSchPayId>38465</mSchPayId>
+  <schType>1 Month</schType>
+  <startDate>2014-08-04 00:00:00.0</startDate>
+  <endDate>null</endDate>
+  <merRef>1407144798186</merRef>
+  <amount>99</amount>
+  <payType>N</payType>
+  <payMethod>VISA</payMethod>
+  <account>433590******0045</account>
+  <holder>Tan</holder>
+  <expiryDate>7/2015</expiryDate>
+  <status>Suspend</status>
+  <suspendDate>2014-08-05 11:36:46.0</suspendDate>
+  <lastTerminateDate>2015-06-04 00:00:00.0</lastTerminateDate>
+  <reActivateDate>null</reActivateDate>
+  <detailSchPay>
+  <dSchPayId>611541</dSchPayId>
+  <schType>1 Month</schType>
+  <orderDate>2014-08-04 00:00:00.0</orderDate>
+  <tranDate></tranDate>
+  <currency>US</currency>
+  <amount>99</amount>
+  <status>New</status>
+  <payRef></payRef>
+  </detailSchPay>
+  </masterSchPay>
+  </records>
+      RESPONSE
+    end
 
-  def credit_card(brand, month, year, number, name, verification_value)
-    Struct.new("CreditCard", :brand, :month, :year, :number, :name, :verification_value)
-    return Struct::CreditCard.new(brand, month, year, number, name, verification_value)
-  end
+    def invalid_status_recurring_response
+      <<-RESPONSE
+  <?xml version="1.0" encoding="ISO-8859-1"?>
+  <records>
+  <masterSchPay>
+  </masterSchPay>
+  </records>
+      RESPONSE
+    end
+
+    def successful_cancel_recurring_response
+      "resultCode=0&mSchPayId=38465&merchantId=12103014&orderRef=1407144798186&status=Suspend&errMsg=Suspend successfully."
+    end
+
+    def successful_reactivate_recurring_response
+      "resultCode=0&mSchPayId=38465&merchantId=12103014&orderRef=1407144798186&status=Active&errMsg=Reactivate successfully."
+    end
+
+    def invalid_cancel_recurring_response
+      "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=The transaction already Suspended."
+    end
+
+    def invalid_reactivate_recurring_response
+      "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=The transaction already Activated."
+    end
+
+  private
+    def credit_card(brand, month, year, number, name, verification_value)
+      Struct.new("CreditCard", :brand, :month, :year, :number, :name, :verification_value)
+      return Struct::CreditCard.new(brand, month, year, number, name, verification_value)
+    end
 
 end
