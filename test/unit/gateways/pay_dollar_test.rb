@@ -95,7 +95,6 @@ class PayDollarTest < Test::Unit::TestCase
     @options[:name] = "John Doe"
 
     assert response = @gateway.retrieve_card(@options)
-    p response.params["account"]
     assert_success response
     assert_equal 'OK', response.message
     acc = response.params["account"]
@@ -168,14 +167,33 @@ class PayDollarTest < Test::Unit::TestCase
     @gateway.expects(:ssl_post).returns(invalid_status_recurring_response)
 
     assert response = @gateway.status_recurring(3826300, @options)
-    p response
   end
 
-  # def test_cancel_recurring_success
-  #   @gateway.expects(:ssl_post).returns(successful_cancel_recurring_response)
-  #   assert response = @gateway.cancel_recurring(3826300, @options)
-  #   p response
-  # end
+  def test_cancel_recurring_success
+    @gateway.expects(:ssl_post).returns(successful_cancel_recurring_response)
+    assert response = @gateway.cancel_recurring(38465, @options)
+    assert_equal response.message, "Suspend successfully."
+    assert_success response
+  end
+
+  def test_invalid_cancel_recurring
+    @gateway.expects(:ssl_post).returns(invalid_cancel_recurring_response)
+    assert response = @gateway.cancel_recurring(38465, @options)
+    assert_failure response
+  end
+
+  def test_reactivate_recurring_success
+    @gateway.expects(:ssl_post).returns(successful_reactivate_recurring_response)
+    assert response = @gateway.reactivate_recurring(38465, @options)
+    assert_equal response.message, "Reactivate successfully."
+    assert_success response
+  end
+
+  def test_invalid_reactivate_recurring
+    @gateway.expects(:ssl_post).returns(invalid_reactivate_recurring_response)
+    assert response = @gateway.reactivate_recurring(38465, @options)
+    assert_failure response
+  end
 
   protected
 
@@ -331,41 +349,6 @@ class PayDollarTest < Test::Unit::TestCase
   <amount>99</amount>
   <status>Accepted</status>
   <payRef>1597533</payRef>
-  </detailSchPay>
-  </masterSchPay>
-  </records>
-      RESPONSE
-    end
-
-    def successful_status_recurring_suspend_response
-      <<-RESPONSE
-      <?xml version="1.0" encoding="ISO-8859-1"?>
-  <records>
-  <masterSchPay>
-  <mSchPayId>38465</mSchPayId>
-  <schType>1 Month</schType>
-  <startDate>2014-08-04 00:00:00.0</startDate>
-  <endDate>null</endDate>
-  <merRef>1407144798186</merRef>
-  <amount>99</amount>
-  <payType>N</payType>
-  <payMethod>VISA</payMethod>
-  <account>433590******0045</account>
-  <holder>Tan</holder>
-  <expiryDate>7/2015</expiryDate>
-  <status>Suspend</status>
-  <suspendDate>2014-08-05 11:36:46.0</suspendDate>
-  <lastTerminateDate>2015-06-04 00:00:00.0</lastTerminateDate>
-  <reActivateDate>null</reActivateDate>
-  <detailSchPay>
-  <dSchPayId>611541</dSchPayId>
-  <schType>1 Month</schType>
-  <orderDate>2014-08-04 00:00:00.0</orderDate>
-  <tranDate></tranDate>
-  <currency>US</currency>
-  <amount>99</amount>
-  <status>New</status>
-  <payRef></payRef>
   </detailSchPay>
   </masterSchPay>
   </records>

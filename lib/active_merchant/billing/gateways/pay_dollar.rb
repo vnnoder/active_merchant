@@ -249,6 +249,7 @@ module ActiveMerchant #:nodoc:
 
       def status_recurring(schedule_id, options = {})
         options.merge! @options
+        requires!(options, :login, :password)
         post = {}
 
         add_authentication(post, options)
@@ -259,12 +260,28 @@ module ActiveMerchant #:nodoc:
         commit('status_recurring', post)
       end
 
-      def update_recurring(amount, source, options = {})
+      def reactivate_recurring(schedule_id, options = {})
+        options.merge!(@options)
+        requires!(options, :login, :password)
+        post = {}
 
+        add_authentication(post, options)
+        add_pair(post, :actionType, "ReactivateSchPay")
+        add_pair(post, :mSchPayId, schedule_id)
+
+        commit('reactivate_recurring', post)
       end
 
-      def cancel_recurring(options = {})
+      def cancel_recurring(schedule_id, options = {})
+        options.merge!(@options)
+        requires!(options, :login, :password)
+        post = {}
 
+        add_authentication(post, options)
+        add_pair(post, :actionType, "SuspendSchPay")
+        add_pair(post, :mSchPayId, schedule_id)
+
+        commit('cancel_recurring', post)
       end
 
     protected
@@ -364,7 +381,7 @@ module ActiveMerchant #:nodoc:
           test? ? self.test_memberpay_url : self.live_memberpay_url
         when 'membership'
           test? ? self.test_membership_url : self.live_membership_url
-        when 'recurring', 'status_recurring'
+        when 'recurring', 'status_recurring', 'cancel_recurring', 'reactivate_recurring'
           test? ? self.test_schedule_url : self.live_schedule_url
         end
 
