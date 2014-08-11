@@ -315,6 +315,26 @@ class RemotePayDollarTest < Test::Unit::TestCase
     assert_equal "Reactivate successfully.", response.message
   end
 
+  def test_delete_recurring
+    gateway = PayDollarGateway.new(fixtures(:pay_dollar))
+    options = {
+      :start_day => Date.today.day,
+      :start_month => Date.today.month,
+      :start_year => Date.today.year,
+      :email => "user@example.com",
+      :number_of_type => 1,
+      :schedule_type => "Day"
+    }.merge!(@options)
+
+    assert response = gateway.recurring(99, @credit_card, options)
+    assert_success response
+    schedule_id = response.params["mSchPayId"]
+
+    assert response = gateway.delete_recurring(schedule_id, @options)
+    assert_success response
+    assert_equal "Delete successfully.", response.message
+  end
+
 private
 
   def credit_card(brand, month, year, number, name, verification_value)

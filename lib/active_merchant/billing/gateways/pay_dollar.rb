@@ -248,43 +248,34 @@ module ActiveMerchant #:nodoc:
       end
 
       def status_recurring(schedule_id, options = {})
-        options.merge! @options
-        requires!(options, :login, :password)
-        post = {}
-
-        add_authentication(post, options)
-
-        add_pair(post, :actionType, "Query")
-        add_pair(post, :mSchPayId, schedule_id)
-
-        commit('status_recurring', post)
+        recurring_action(schedule_id, 'Query', 'status_recurring', options)
       end
 
       def reactivate_recurring(schedule_id, options = {})
-        options.merge!(@options)
-        requires!(options, :login, :password)
-        post = {}
-
-        add_authentication(post, options)
-        add_pair(post, :actionType, "ReactivateSchPay")
-        add_pair(post, :mSchPayId, schedule_id)
-
-        commit('reactivate_recurring', post)
+        recurring_action(schedule_id, 'ReactivateSchPay', 'reactivate_recurring', options)
       end
 
       def cancel_recurring(schedule_id, options = {})
+        recurring_action(schedule_id, 'SuspendSchPay', 'cancel_recurring', options)
+      end
+
+      def delete_recurring(schedule_id, options = {})
+        recurring_action(schedule_id, 'DeleteSchPay', 'delete_recurring', options)
+      end
+
+    protected
+      def recurring_action(schedule_id, pay_dollar_action, action, options = {})
         options.merge!(@options)
         requires!(options, :login, :password)
         post = {}
 
         add_authentication(post, options)
-        add_pair(post, :actionType, "SuspendSchPay")
+        add_pair(post, :actionType, pay_dollar_action)
         add_pair(post, :mSchPayId, schedule_id)
 
-        commit('cancel_recurring', post)
+        commit(action, post)
       end
 
-    protected
       def authorize_or_purchase_post(amount, payment_source, options = {}, type)
         post = {}
         add_invoice(post, options)
@@ -381,7 +372,7 @@ module ActiveMerchant #:nodoc:
           test? ? self.test_memberpay_url : self.live_memberpay_url
         when 'membership'
           test? ? self.test_membership_url : self.live_membership_url
-        when 'recurring', 'status_recurring', 'cancel_recurring', 'reactivate_recurring'
+        when 'recurring', 'status_recurring', 'cancel_recurring', 'reactivate_recurring', 'delete_recurring'
           test? ? self.test_schedule_url : self.live_schedule_url
         end
 

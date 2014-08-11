@@ -195,6 +195,18 @@ class PayDollarTest < Test::Unit::TestCase
     assert_failure response
   end
 
+  def test_successful_delete_recurring
+    @gateway.expects(:ssl_post).returns(successful_delete_recurring_response)
+    assert response = @gateway.delete_recurring(38262, @options)
+    assert_success response
+    assert_equal "Delete successfully.", response.message
+  end
+
+  def test_invalid_delete_recurring
+    @gateway.expects(:ssl_post).returns(invalid_delete_recurring_response)
+    assert response = @gateway.delete_recurring(382622121, @options)
+    assert_failure response
+  end
   protected
 
     def successful_delete_card_response
@@ -379,6 +391,14 @@ class PayDollarTest < Test::Unit::TestCase
 
     def invalid_reactivate_recurring_response
       "resultCode=-1&mSchPayId=&merchantId=&orderRef=&status=&errMsg=The transaction already Activated."
+    end
+
+    def successful_delete_recurring_response
+      "resultCode=0&mSchPayId=38262&merchantId=12103014&orderRef=SCH1&status=Deleted&errMsg=Delete successfully."
+    end
+
+    def invalid_delete_recurring_response
+      "resultCode=-1&mSchPayId=382622121&merchantId=0&orderRef=&status=Deleted&errMsg=Can't update table masterSchPay."
     end
 
   private
